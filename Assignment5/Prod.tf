@@ -1,0 +1,1 @@
+Variable = "ap-south-1"
