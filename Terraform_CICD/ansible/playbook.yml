@@ -1,5 +1,5 @@
 ---
-- name: Install and Configure Tomcat
+- name: Install and Configure Tomcat on Ubuntu
   hosts: webserver
   become: yes
   tasks:
@@ -7,18 +7,14 @@
       apt:
         name: openjdk-11-jdk
         state: present
-      when: ansible_os_family == "Debian"
+        update_cache: yes
 
-    - name: Install Java (For RHEL-based Systems)
-      yum:
-        name: java-11-openjdk
-        state: present
-      when: ansible_os_family == "RedHat"
-
-    - name: Create Tomcat User
-      user:
-        name: tomcat
-        shell: /bin/nologin
+    # - name: Create Tomcat User
+    #   user:
+    #     name: tomcat
+    #     shell: /bin/nologin
+    #     system: yes
+    #     home: /opt/tomcat
 
     - name: Download Tomcat
       get_url:
@@ -31,15 +27,26 @@
         dest: "/opt/"
         remote_src: yes
 
-    - name: Set Permissions
+    - name: Rename and Set Permissions for Tomcat
+      command: mv /opt/apache-tomcat-9.0.73 /opt/tomcat
+
+    - name: Set Ownership and Permissions for Tomcat
       file:
-        path: "/opt/apache-tomcat-9.0.73"
+        path: "/opt/tomcat"
         owner: tomcat
         group: tomcat
         mode: '0755'
         recurse: yes
 
-    - name: Create Tomcat Service File
+    - name: Make Tomcat Scripts Executable
+      file:
+        path: "/opt/tomcat/bin/{{ item }}"
+        mode: '0755'
+      with_items:
+        - startup.sh
+        - shutdown.sh
+
+    - name: Create Tomcat Systemd Service File
       copy:
         dest: "/etc/systemd/system/tomcat.service"
         content: |
@@ -51,21 +58,22 @@
           Type=forking
           User=tomcat
           Group=tomcat
-          ExecStart=/opt/apache-tomcat-9.0.73/bin/startup.sh
-          ExecStop=/opt/apache-tomcat-9.0.73/bin/shutdown.sh
+          ExecStart=/opt/tomcat/bin/startup.sh
+          ExecStop=/opt/tomcat/bin/shutdown.sh
           Restart=always
 
           [Install]
           WantedBy=multi-user.target
 
-    - name: Reload Systemd and Start Tomcat
+    - name: Reload Systemd, Enable and Start Tomcat
       shell: |
         systemctl daemon-reload
         systemctl enable tomcat
         systemctl start tomcat
 
-    - name: Allow traffic on port 8082
-      ufw:
-        rule: allow
-        port: "8082"
-        proto: tcp
+    - name: Allow Traffic on Port 8082 (if UFW is installed)
+      command: ufw allow 8082
+      ignore_errors: yes
+
+    - name: Ensure Tomcat is Running
+      command: systemctl status tomcat
