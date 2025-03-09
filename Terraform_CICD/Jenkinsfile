@@ -25,7 +25,7 @@ pipeline {
             }
             steps {
                  script{
-                        dir("terraform")
+                        dir("Terraform_CICD")
                         {
                             sh("""
                                 git clone "https://github.com/nikhilpatil027/Terraform_code_Nikhil_Patil.git"
