@@ -11,7 +11,7 @@ provider "aws" {
   
 }
 module "ec2_instance" {
-  source        = "github.com/nikhilpatil027/Terraform_code_Nikhil_Patil/Modules/ec2_creation"
+  source        = "github.com/nikhilpatil027/Terraform_code_Nikhil_Patil/Terraform_CICD/ec2_creation"
   region        = var.region
   instance_type = var.instance_type
 }
