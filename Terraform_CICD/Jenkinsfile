@@ -79,6 +79,13 @@ pipeline {
                 sh "terraform apply -input=false tfplan"
             }
         }
+
+        stage('Configure Tomcat with Ansible')
+        {
+           steps {
+          sh 'ansible-playbook -i inventory.ini playbook.yml'
+        }
+     }   
         
         stage('Destroy') {
             when {
