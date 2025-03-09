@@ -27,6 +27,13 @@ pipeline {
                  script{
                         dir("Terraform_CICD")
                         {
+                            // Check if the "terra-cloud" directory exists
+                            sh '''
+                                if [ -d "Terraform_code_Nikhil_Patil" ]; then
+                                    echo "Directory exists. Deleting it..."
+                                    rm -rf Terraform_code_Nikhil_Patil
+                                fi
+                                echo "Cloning the repository..."
                             sh("""
                                 git clone "https://github.com/nikhilpatil027/Terraform_code_Nikhil_Patil.git"
                              """)
