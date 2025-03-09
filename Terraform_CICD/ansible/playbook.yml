@@ -1,0 +1,71 @@
+---
+- name: Install and Configure Tomcat
+  hosts: webserver
+  become: yes
+  tasks:
+    - name: Install Java (Tomcat Dependency)
+      apt:
+        name: openjdk-11-jdk
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: Install Java (For RHEL-based Systems)
+      yum:
+        name: java-11-openjdk
+        state: present
+      when: ansible_os_family == "RedHat"
+
+    - name: Create Tomcat User
+      user:
+        name: tomcat
+        shell: /bin/nologin
+
+    - name: Download Tomcat
+      get_url:
+        url: "https://downloads.apache.org/tomcat/tomcat-9/v9.0.73/bin/apache-tomcat-9.0.73.tar.gz"
+        dest: "/tmp/tomcat.tar.gz"
+
+    - name: Extract Tomcat
+      ansible.builtin.unarchive:
+        src: "/tmp/tomcat.tar.gz"
+        dest: "/opt/"
+        remote_src: yes
+
+    - name: Set Permissions
+      file:
+        path: "/opt/apache-tomcat-9.0.73"
+        owner: tomcat
+        group: tomcat
+        mode: '0755'
+        recurse: yes
+
+    - name: Create Tomcat Service File
+      copy:
+        dest: "/etc/systemd/system/tomcat.service"
+        content: |
+          [Unit]
+          Description=Tomcat 9
+          After=network.target
+
+          [Service]
+          Type=forking
+          User=tomcat
+          Group=tomcat
+          ExecStart=/opt/apache-tomcat-9.0.73/bin/startup.sh
+          ExecStop=/opt/apache-tomcat-9.0.73/bin/shutdown.sh
+          Restart=always
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Reload Systemd and Start Tomcat
+      shell: |
+        systemctl daemon-reload
+        systemctl enable tomcat
+        systemctl start tomcat
+
+    - name: Allow traffic on port 8082
+      ufw:
+        rule: allow
+        port: "8082"
+        proto: tcp
